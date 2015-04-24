@@ -8,8 +8,12 @@ pyTopoTools is a collection of functions to quickly get a overview of topographi
 * Local relief/Geophysical relief maps
 
 The powerspectrum analysis is heavily based on the work of [Taylor Perron](http://web.mit.edu/perron/www/perron.html).
-Orginally developed out of need this library is only maintained/updated with needed.
+Orginally developed out of need this library is only maintained/updated when needed.
 
+Documentation
+---------------
+
+The goal is selv-documenting code so no manual will be available. Below are a number of examples to show how to use the code.
 
 Examples
 -----------------
