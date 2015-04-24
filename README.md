@@ -1,7 +1,7 @@
 Topographic analysis in python
 ================================
 
-pyTopoTools is a collection of functions to quickly get a overview of topographic data. 
+pyTopoTools is a collection of functions to quickly get a overview of topographic data. It provides the following functions,
 
 * Powerspectrum analysis
 * Frequency filters
