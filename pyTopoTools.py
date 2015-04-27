@@ -105,6 +105,42 @@ def zfilter(fmat, f, filttype):
 
     return F
 
+def localReliefBand(Z,cent,width,dim=0):
+    '''
+    Computes the local relief along a row/column in the
+    matrix.
+
+    input:
+    ---------
+    Z: 2D Topography matrix
+    cent: Center of the band (pixel)
+    width: Width/2 of the band (pixel)
+    dim: Dimension to compute along (0/1)
+
+    output:
+    ---------
+    bmin: minimum along the band
+    bmax: maximum along the band
+    bmean: mean along the band
+    blr: local relief along the band
+    '''
+
+    if dim:
+        # Compute along second dimension in matrix
+        bmax = np.max(Z[:,cent-width:cent+width],axis=dim)
+        bmin = np.min(Z[:,cent-width:cent+width],axis=dim)
+        bmean = np.mean(Z[:,cent-width:cent+width],axis=dim)
+        blr = bmax-bmin
+
+    else:
+        # Compute along first dimension in matrix
+        bmax = np.max(Z[cent-width:cent+width,:],axis=dim)
+        bmin = np.min(Z[cent-width:cent+width,:],axis=dim)
+        bmean = np.mean(Z[cent-width:cent+width,:],axis=dim)
+        blr = bmax-bmin
+        
+    return bmin,bmax,bmean,blr
+
 def localRelief(Z,width=5,walti=False):
     '''
     Computes the local relief using a window function
