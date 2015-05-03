@@ -94,3 +94,33 @@ def areaErosion(Z,Zbase,cent,w,h,time):
     Zbarea = Zbase[cent[0]-w:cent[0]+w,cent[1]-h:cent[1]+h]
     
     return np.mean(Zarea-Zbarea), np.mean(Zarea-Zbarea)/time, np.amax(Zarea)-np.amin(Zarea)
+
+
+def readVariable(path,FileNo,varname,GridDim):
+    """
+    Load SPM results into memory
+    """
+
+    # List of when variables are in output file
+    # Updated with spm-3.3.4
+    varlist = ['xc','yc','bed','ice','bslope','hslope','curv','te2',
+               'periglacial_erosion','sedi','tn','te','ts','sliding','deformation',
+               'Pw','Mb','quarrying','accrate','Ms','periglacial_erate','fluvial_erosion',
+               'landslide_erosion','abrasion','isostasy','lee','Ts','hillslope_erosion',
+               'Ta','Tb','sfac','margin','Hgw','gqw','Kgw','hc']
+    
+    Nx = GridDim[0]
+    Ny = GridDim[1]
+    
+    varout  = np.zeros((Nx,Ny), dtype=np.float64)
+    idx = varlist.index(varname)
+    
+    with open(path+'/output/output'+str(FileNo)+".dat","rb") as f:
+        f.seek((idx)*Nx*Ny*np.dtype(np.float64).itemsize)
+        for y in np.arange(0, Ny):
+            varout[:,y]          = np.fromfile(f,dtype=np.float64, count=Nx);
+
+    f.close()
+
+    return varout
+
