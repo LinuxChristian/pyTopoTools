@@ -87,7 +87,7 @@ def detectLowRelief(Z,wstep=5,lrlim=500.0,elelim=1000.0):
     input:
     ---------
     Z: 2D Topography matrix
-    wstep: Steps of box width to compute 
+    wstep: Steps of box width to compute (i.e. a list of widths to compute)
     lrlim: Limit for what a low relief is
     elelim: Cut off level for when surfaces become two low
 
@@ -107,6 +107,45 @@ def detectLowRelief(Z,wstep=5,lrlim=500.0,elelim=1000.0):
         
     Zbin[Z < elelim] = 0    
     return Zbin
+
+def plotLowRelief(Z,ZLowRe,boxsize,ext=None,cmap=None):
+    '''
+    Plots the results of detectLowRelief
+    
+    INPUT:
+    ------
+    Z: 2D Topography matrix
+    ZLowRe: Output from detectLowRelief
+    boxsize: Size of boxes used in meters
+    ext: extent of model
+    cmap: Colormap
+    '''
+
+    if ext is None:
+        Ny, Nx = Z.shape
+        ext = [0, Ny, Nx, 0]
+
+        
+    if cmap is None:
+        cmap=plt.get_cmap('jet')
+    
+    plt.figure()
+    plt.matshow(hillshade(Z,315,65),extent=ext,cmap=plt.get_cmap('bone'))
+    plt.imshow(Z,extent=ext,cmap=plt.get_cmap('terrain'),alpha=0.8)
+    z_masked = np.ma.masked_where(ZLowRe < 1 , ZLowRe)
+    plt.hold(True)
+
+    plt.title('Geophysical relief 2')
+        
+    ax = plt.imshow(z_masked,extent=ext,cmap=cmap)
+    cax = plt.colorbar(ax,orientation='horizontal')
+#    print(boxsize)
+        #np.linspace(1,len(boxsize),len(boxsize)-1)+.5)
+    cax.set_ticks(np.arange(len(boxsize)+1))
+    cax.set_ticklabels(boxsize)
+#    cax.title('Box width')
+    
+#    plt.tight_layout()
 
 def zfilter(fmat, f, filttype):
     if (filttype is 'lowpass'):
@@ -428,7 +467,27 @@ def plotDEM(Z,hshade=False,t=''):
         plt.colorbar()
         
     plt.show()
-    
+
+def plotVariable(varname,cmap=None,trans=False,title=''):
+    '''
+    Plot the variable from SPM output files
+
+    INPUT:
+    -------
+    var: variable to plot
+    clim: color limits
+    '''
+    if cmap is None:
+        cmap = sns.cubehelix_palette(8,as_cmap=True)
+
+    if trans:
+        varname = varname.T
+        
+    plt.figure()
+    ax = plt.imshow(varname,cmap=cmap)
+    plt.title(title)
+    cbar = plt.colorbar(ax)
+
 def hillshade(array, azimuth, angle_altitude):
         
     x, y = np.gradient(array)
