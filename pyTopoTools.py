@@ -1,3 +1,18 @@
+# Python package to perform quick analysis on topographic data
+# Copyright (C) 2015 Christian Braedstrup
+# This file is part of pyTopoTools.
+#
+# pyTopoTools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License v2 as published by
+# the Free Software Foundation.
+#
+# pyTopoTools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License
+# along with pyTopoTools. If not, see <http://www.gnu.org/licenses/>.
+
 import numpy as np
 #import psd
 import gdal
@@ -9,6 +24,7 @@ from scipy.io import loadmat
 from matplotlib.colors import LogNorm
 #from mpl_toolkits.mplot3d.axes3d import Axes3D
 import statsmodels.api as sm
+import seaborn as sns
 
 def detrend(M):
     ny, nx = M.shape
@@ -62,6 +78,35 @@ def filterDEM(Z, dx, f, filttype):
     Zf = np.real(np.fft.ifft2(np.fft.ifftshift(ft*F)))
 
     return Zf[0:Ny,0:Nx], F
+
+def detectLowRelief(Z,wstep=5,lrlim=500.0,elelim=1000.0):
+    '''
+    Given a topography matrix this function returns
+    a binary map of low relief surfaces at high elevation
+
+    input:
+    ---------
+    Z: 2D Topography matrix
+    wstep: Steps of box width to compute 
+    lrlim: Limit for what a low relief is
+    elelim: Cut off level for when surfaces become two low
+
+    output:
+    ---------
+    Zlr: Binary low relief matrix
+    '''
+
+    Zbin = np.zeros(Z.shape)
+    
+    for w in wstep:
+        print(w)
+        ZLoc = localRelief(Z,w)
+
+        Zbin[ZLoc < lrlim] += 1
+
+        
+    Zbin[Z < elelim] = 0    
+    return Zbin
 
 def zfilter(fmat, f, filttype):
     if (filttype is 'lowpass'):
@@ -243,37 +288,75 @@ def bslope(Z,dx=1,dy=1,cmin=0.0,cmax=1e10):
     else:
         return np.sqrt(pow2(Zgx)+pow2(Zgy))
 
-def analyseDEM(Z,dx,dy,forceshow=False,w=5):
+def analyseDEM(Z,dx,dy,forceshow=False,w=5,title='',trans=False,corner=[0.0,0.0],divcmap=None,seqcmap=None):
     '''
     Wrapper function to provide a quick
     overview of a DEM.
     Plots shadedrelief, local relief and
     bed gradient.
+
+    INPUT:
+    --------
+    Z: 2D Topography Matrix
+    dx: Cell width in x-dimension
+    dy: Cell width in y-dimension
+    forceshow: Show plot after function call
+    w: Box width for geophysical relief
+    title: Super title for plot
+    trans: Transpose Z matrix for plotting
+    corner: Coordinates of (x0,y0)
+    cmap: custom colormap
     '''
+    if trans:
+        Z = Z.T
+
+    Ny, Nx = Z.shape
+    x0 = corner[0]
+    x1 = x0 + Nx*dx
+    x1 = x1/1e3 # to km
+    y0 = corner[1]
+    y1 = y0 + Ny*dy
+    y1 = y1/1e3 # to km
+
+    # Use custom Seaborn color palettes
+    if divcmap is None:
+        # Diverging cmap
+        divcmap = sns.diverging_palette(220, 20, n=7, as_cmap=True)
+        
+    if seqcmap is None:
+        # Sequential cmap
+        seqcmap = sns.light_palette("green", reverse=True, as_cmap=True)
+    
     plt.figure()
     plt.subplot(221)
-    plt.imshow(Z)
-    plt.title("Elevation")
-    plt.colorbar()
+    plt.imshow(Z,cmap=plt.get_cmap('terrain'),extent=[y0, y1, x1, x0],aspect='auto')
+    plt.title("Elevation",fontsize=12)
+    plt.ylabel('Km')
+    plt.colorbar(orientation='horizontal')
     
     plt.subplot(222)
     Zloc = localRelief(Z,w)
-    plt.imshow(Zloc,vmax=350)
+    plt.imshow(Zloc,vmax=150,extent=[y0, y1, x1, x0],aspect='auto',cmap=seqcmap)
     plt.title("Local relief - Radius %i"%(np.sqrt(pow2(w*dx)+pow2(w*dy))))
-    plt.colorbar()
-
+    plt.ylabel('Km')
+    plt.colorbar(orientation='horizontal')
+    
     plt.subplot(223)
     Zslo = bslope(Z,dx,dy,cmax=1.0)
-    plt.imshow(Zslo,vmax=0.5)
-    plt.title("Sognefjord - Gradient")
-    plt.colorbar()
+    plt.imshow(Zslo,vmax=0.3,extent=[y0, y1, x1, x0],aspect='auto',cmap=divcmap)
+    plt.title("Gradient")
+    plt.ylabel('Km')
+    plt.colorbar(orientation='horizontal')
 
     plt.subplot(224)
     ZlocZ = np.clip(Zloc/Z,0.0,1)
-    plt.imshow(ZlocZ)
-    plt.title("Sognefjord - Local Relief/Elevation")
-    plt.colorbar()
+    plt.imshow(ZlocZ,extent=[y0, y1, x1, x0],aspect='auto',cmap=divcmap)
+    plt.ylabel('Km')
+    plt.title("Local Relief/Elevation")
+    plt.colorbar(orientation='horizontal')
 
+    plt.tight_layout()
+    
     if forceshow:
         plt.show()
 
