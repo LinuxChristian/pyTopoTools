@@ -195,6 +195,47 @@ def zfilter(fmat, f, filttype):
 
     return F
 
+# Color adjust code found on this page
+# https://sites.google.com/site/theodoregoetz/notes/matplotlib_colormapadjust
+def cmap_powerlaw_adjust(cmap, a):
+    '''
+    returns a new colormap based on the one given
+    but adjusted via power-law:
+
+    newcmap = oldcmap**a
+    '''
+    if a < 0.:
+        return cmap
+    cdict = copy.copy(cmap._segmentdata)
+    fn = lambda x : (x[0]**a, x[1], x[2])
+    for key in ('red','green','blue'):
+        cdict[key] = map(fn, cdict[key])
+        cdict[key].sort()
+        assert (cdict[key][0]<0 or cdict[key][-1]>1), \
+            "Resulting indices extend out of the [0, 1] segment."
+    return colors.LinearSegmentedColormap('colormap',cdict,1024)
+
+def cmap_center_adjust(cmap, center_ratio):
+    '''
+    returns a new colormap based on the one given
+    but adjusted so that the old center point higher
+    (>0.5) or lower (<0.5)
+    '''
+    if not (0. < center_ratio) & (center_ratio < 1.):
+        return cmap
+    a = np.log(center_ratio) / np.log(0.5)
+    return cmap_powerlaw_adjust(cmap, a)
+
+def cmap_center_point_adjust(cmap, range, center):
+    '''
+    converts center to a ratio between 0 and 1 of the
+    range given and calls cmap_center_adjust(). returns
+    a new adjusted colormap accordingly
+    '''
+    if not ((range[0] < center) and (center < range[1])):
+        return cmap
+    return cmap_center_adjust(cmap,
+        abs(center - range[0]) / abs(range[1] - range[0]))
 
 
 
