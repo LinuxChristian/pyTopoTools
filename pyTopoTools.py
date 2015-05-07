@@ -18,6 +18,7 @@ import numpy as np
 import gdal
 import pdb
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import matplotlib.patches as patches
 import operator
 from scipy.io import loadmat
@@ -25,6 +26,7 @@ from matplotlib.colors import LogNorm
 #from mpl_toolkits.mplot3d.axes3d import Axes3D
 import statsmodels.api as sm
 import seaborn as sns
+import copy
 
 def detrend(M):
     ny, nx = M.shape
@@ -193,6 +195,9 @@ def zfilter(fmat, f, filttype):
 
     return F
 
+
+
+
 def localReliefBand(Z,cent,width,dim=0):
     '''
     Computes the local relief along a row/column in the
@@ -277,28 +282,51 @@ def localRelief(Z,width=5,walti=False):
             
 
 
-def boxRelief(Z,dx,dy,c,w=5,rn=10,plot=False):
+def boxRelief(Z,dx,dy,c,w=5,rn=10,evenly=False,plot=False):
     '''
     Computes relief within a box of 
     width w (cells) with rn intervals
     centered around c [xc,yc].
+
+    INPUT
+    ------
+    Z: 2D Topography matrix
+    dx: X spacing
+    dy: Y spacing
+    c: Box center point
+    w: Box width
+    rn: Number of box increases
+    evenly: Grow box evenly or just in one direction
+    plot: Plot result
     '''
 
     Nx,Ny = Z.shape
     L = dx*Nx; H = dy*Ny;
     lrelief = np.zeros((rn-1))
-    for i in np.arange(1,rn):
-        # Boundary conditions
-        xl = c[0] if w > 0 else c[0]+i*w
-        xr = c[0]+i*w if w > 0 else c[0]
-        yl = c[1] if w > 0 else c[1]+i*w
-        yr = c[1]+i*w if w > 0 else c[1]
-        
-        sli = Z[yl:yr,xl:xr]
-#        print(xl,xr,yl,yr)
-#        print(sli)
-        if (len(sli) > 0):
-            lrelief[i-1] = np.amax(sli)-np.amin(sli)
+
+    # Evenly distribute
+    if evenly is True:
+        for i in np.arange(1,rn):
+            # Boundary conditions
+            xl = c[0]-i*w if c[0]-i*w > 0 else 0
+            xr = c[0]+i*w if c[0]+i*w < Nx else Nx
+            yl = c[1]-i*w if c[1]-i*w > 0 else 0
+            yr = c[1]+i*w if c[1]+i*w < Ny else Ny
+
+            sli = Z[yl:yr,xl:xr]
+            if (len(sli) > 0):
+                lrelief[i-1] = np.amax(sli)-np.amin(sli)
+    else:
+        for i in np.arange(1,rn):
+            # Boundary conditions
+            xl = c[0] if w > 0 else c[0]+i*w
+            xr = c[0]+i*w if w > 0 else c[0]
+            yl = c[1] if w > 0 else c[1]+i*w
+            yr = c[1]+i*w if w > 0 else c[1]
+
+            sli = Z[yl:yr,xl:xr]
+            if (len(sli) > 0):
+                lrelief[i-1] = np.amax(sli)-np.amin(sli)
 
     if plot:
         fig = plt.figure()
