@@ -104,7 +104,7 @@ def detectLowRelief(Z,wstep=5,lrlim=500.0,elelim=1000.0):
         print(w)
         ZLoc = localRelief(Z,w)
 
-        Zbin[ZLoc < lrlim] += 1
+        ZBin[ZLoc < lrlim] += 1
 
         
     Zbin[Z < elelim] = 0    
@@ -139,14 +139,14 @@ def plotLowRelief(Z,ZLowRe,boxsize,ext=None,cmap=None,mlab=False):
     else:
         plt.figure()
         plt.matshow(hillshade(Z,315,65),extent=ext,cmap=plt.get_cmap('bone'))
-        plt.imshow(Z,extent=ext,cmap=plt.get_cmap('terrain'),alpha=0.8)
+        im_bed = plt.imshow(Z,extent=ext,cmap=cmap_center_adjust(plt.get_cmap('terrain'), 0.65),alpha=0.8)
         z_masked = np.ma.masked_where(ZLowRe < 1 , ZLowRe)
         plt.hold(True)
 
         plt.title('Geophysical relief')
 
-        ax = plt.imshow(z_masked,extent=ext,cmap=cmap)
-        cax = plt.colorbar(ax,orientation='horizontal')
+        im_gr = plt.imshow(z_masked,extent=ext,cmap=cmap)
+        cax = plt.colorbar(im_gr,orientation='horizontal')
 
         cax.set_ticks(np.arange(len(boxsize)+1))
         cax.set_ticklabels(boxsize)
@@ -275,10 +275,76 @@ def localReliefBand(Z,cent,width,dim=0):
         
     return bmin,bmax,bmean,blr
 
-def localRelief(Z,width=5,walti=False):
+def test_localRelief():
+    Z = np.matrix([
+        [1,1,1,1,1,1,1,1,1],
+        [1,2,2,2,2,2,2,2,1],
+        [1,2,3,3,3,3,3,2,1],
+        [1,2,3,4,4,4,3,2,1],
+        [1,2,3,4,5,4,3,2,1],
+        [1,2,3,4,4,4,3,2,1],
+        [1,2,3,3,3,3,3,2,1],
+        [1,2,2,2,2,2,2,2,1],
+        [1,1,1,1,1,1,1,1,1]
+    ])
+    
+    assert 1 == localRelief(Z,[4,4],1,9,9)
+    assert 2 == localRelief(Z,[4,4],2,9,9)
+    assert 3 == localRelief(Z,[4,4],3,9,9)
+    assert 4 == localRelief(Z,[4,4],4,9,9)
+    assert 0.0 == localRelief(Z,[4,4],0,9,9)
+
+def localRelief(Z,c,w,Nx,Ny):
+    '''
+    Given a center point in pixel and a box width this function
+    computes the local relief with that rectangle.
+    Notice that w is the distance in each direction. The
+    box width is therefore 2*w.
+
+    input:
+    -------------
+    Z: Topography matrix
+    c: (x,y) of center point in pixel
+    w: Width of area to compute local relief within (halv box width)
+    Nx: Number of cells in x
+    Ny: Number of cells in y
+    '''
+
+    # Boundary conditions
+    xl = c[0]-w if c[0]-w > 0 else 0
+    xr = c[0]+w if c[0]+w < Nx else Nx
+    yl = c[1]-w if c[1]-w > 0 else 0
+    yr = c[1]+w if c[1]+w < Ny else Ny
+    
+    sli = Z[yl:yr,xl:xr]
+    if (len(sli) > 0):
+        return np.amax(sli)-np.amin(sli)
+    else:
+        return 0.0
+
+    
+def test_localRelief2D():
+    Z = np.matrix([
+        [1,1,1,1,1,1,1,1,1],
+        [1,2,2,2,2,2,2,2,1],
+        [1,2,3,3,3,3,3,2,1],
+        [1,2,3,4,4,4,3,2,1],
+        [1,2,3,4,5,4,3,2,1],
+        [1,2,3,4,4,4,3,2,1],
+        [1,2,3,3,3,3,3,2,1],
+        [1,2,2,2,2,2,2,2,1],
+        [1,1,1,1,1,1,1,1,1]
+    ])
+
+    b = localRelief2D(Z,4)
+    assert 4 == b[4,4]
+
+
+def localRelief2D(Z,width=5,walti=False):
     '''
     Computes the local relief using a window function
-    with default width of 5 px.
+    with default width of 5 px in each direction. 
+    The window function is compute by the function localRelief.
 
     input:
     -------------
@@ -289,10 +355,12 @@ def localRelief(Z,width=5,walti=False):
     
     Nx,Ny = Z.shape
     Zloc = np.zeros(Z.shape)
-    d = np.floor(width/2)
+    d = width
+#    d = np.floor(width/2)
     for x in np.linspace(d,Nx-d,Nx-2*d):
         for y in np.linspace(d,Ny-d,Ny-2*d):
-            Zloc[x,y] = np.amax(Z[x-d:x+d,y-d:y+d])-np.amin(Z[x-d:x+d,y-d:y+d])
+#            Zloc[x,y] = np.amax(Z[x-d:x+d,y-d:y+d])-np.amin(Z[x-d:x+d,y-d:y+d])
+            Zloc[x,y] = localRelief(Z,[x,y],d,Nx,Ny)
 
     
     # Group relief into altitude bands of 50 meters    
@@ -323,6 +391,21 @@ def localRelief(Z,width=5,walti=False):
             
 
 
+def test_boxRelief():
+    Z = np.matrix([
+        [1,1,1,1,1,1,1,1,1],
+        [1,2,2,2,2,2,2,2,1],
+        [1,2,3,3,3,3,3,2,1],
+        [1,2,3,4,4,4,3,2,1],
+        [1,2,3,4,5,4,3,2,1],
+        [1,2,3,4,4,4,3,2,1],
+        [1,2,3,3,3,3,3,2,1],
+        [1,2,2,2,2,2,2,2,1],
+        [1,1,1,1,1,1,1,1,1]
+    ])
+
+    assert 4 == boxRelief(Z,1,1,[4,4],4,rn=2,evenly=True)
+
 def boxRelief(Z,dx,dy,c,w=5,rn=10,evenly=False,plot=False):
     '''
     Computes relief within a box of 
@@ -348,15 +431,7 @@ def boxRelief(Z,dx,dy,c,w=5,rn=10,evenly=False,plot=False):
     # Evenly distribute
     if evenly is True:
         for i in np.arange(1,rn):
-            # Boundary conditions
-            xl = c[0]-i*w if c[0]-i*w > 0 else 0
-            xr = c[0]+i*w if c[0]+i*w < Nx else Nx
-            yl = c[1]-i*w if c[1]-i*w > 0 else 0
-            yr = c[1]+i*w if c[1]+i*w < Ny else Ny
-
-            sli = Z[yl:yr,xl:xr]
-            if (len(sli) > 0):
-                lrelief[i-1] = np.amax(sli)-np.amin(sli)
+            lrelief[i-1] = localRelief(Z,c,w*i,Nx,Ny)
     else:
         for i in np.arange(1,rn):
             # Boundary conditions
@@ -384,7 +459,8 @@ def boxRelief(Z,dx,dy,c,w=5,rn=10,evenly=False,plot=False):
             ax2.add_patch(patches.Rectangle(c,i*w,i*w,fill=None,color='k'))
         plt.colorbar()
         plt.show()
-        
+
+    print(lrelief)
     return lrelief
 
 def bslope(Z,dx=1,dy=1,cmin=0.0,cmax=1e10):
