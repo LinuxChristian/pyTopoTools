@@ -108,7 +108,7 @@ def detectLowRelief(Z,wstep=5,lrlim=500.0,elelim=1000.0):
     Zbin[Z < elelim] = 0    
     return Zbin
 
-def plotLowRelief(Z,ZLowRe,boxsize,ext=None,cmap=None):
+def plotLowRelief(Z,ZLowRe,boxsize,ext=None,cmap=None,mlab=False):
     '''
     Plots the results of detectLowRelief
     
@@ -117,8 +117,11 @@ def plotLowRelief(Z,ZLowRe,boxsize,ext=None,cmap=None):
     Z: 2D Topography matrix
     ZLowRe: Output from detectLowRelief
     boxsize: Size of boxes used in meters
+    Z0: Initial Topography matix (optional)
+    ZLow0: Initial low relief matrix
     ext: extent of model
     cmap: Colormap
+    mlab: 3D plotting with mayavi
     '''
 
     if ext is None:
@@ -128,24 +131,25 @@ def plotLowRelief(Z,ZLowRe,boxsize,ext=None,cmap=None):
         
     if cmap is None:
         cmap=plt.get_cmap('jet')
-    
-    plt.figure()
-    plt.matshow(hillshade(Z,315,65),extent=ext,cmap=plt.get_cmap('bone'))
-    plt.imshow(Z,extent=ext,cmap=plt.get_cmap('terrain'),alpha=0.8)
-    z_masked = np.ma.masked_where(ZLowRe < 1 , ZLowRe)
-    plt.hold(True)
 
-    plt.title('Geophysical relief 2')
-        
-    ax = plt.imshow(z_masked,extent=ext,cmap=cmap)
-    cax = plt.colorbar(ax,orientation='horizontal')
-#    print(boxsize)
-        #np.linspace(1,len(boxsize),len(boxsize)-1)+.5)
-    cax.set_ticks(np.arange(len(boxsize)+1))
-    cax.set_ticklabels(boxsize)
-#    cax.title('Box width')
-    
-#    plt.tight_layout()
+    if mlab:
+        print("Still no 3D function")
+    else:
+        plt.figure()
+        plt.matshow(hillshade(Z,315,65),extent=ext,cmap=plt.get_cmap('bone'))
+        plt.imshow(Z,extent=ext,cmap=plt.get_cmap('terrain'),alpha=0.8)
+        z_masked = np.ma.masked_where(ZLowRe < 1 , ZLowRe)
+        plt.hold(True)
+
+        plt.title('Geophysical relief')
+
+        ax = plt.imshow(z_masked,extent=ext,cmap=cmap)
+        cax = plt.colorbar(ax,orientation='horizontal')
+
+        cax.set_ticks(np.arange(len(boxsize)+1))
+        cax.set_ticklabels(boxsize)
+#        plt.tight_layout()
+            
 
 def zfilter(fmat, f, filttype):
     if (filttype is 'lowpass'):
