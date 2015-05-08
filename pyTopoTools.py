@@ -358,7 +358,7 @@ def localRelief2D(Z,width=5,walti=False):
     d = width
     for x in np.linspace(d,Nx-d,Nx-2*d):
         for y in np.linspace(d,Ny-d,Ny-2*d):
-            Zloc[x,y] = localRelief(Z,[x,y],d,Nx,Ny)
+            Zloc[y,x] = localRelief(Z,[x,y],d,Nx,Ny)
 
     
     # Group relief into altitude bands of 50 meters    
