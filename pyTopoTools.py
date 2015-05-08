@@ -39,7 +39,6 @@ def detrend(M):
 
     # at each (x,y) point, subtract the value of the fitted plane from M
     # Zp = a + b*Y + c*X
-    print(np.amax(M))
     P = (coeff[0] + coeff[2]*Y + coeff[1]*X)
     D = M - P
     return D, P
@@ -91,20 +90,20 @@ def detectLowRelief(Z,wstep=5,lrlim=500.0,elelim=1000.0):
     Z: 2D Topography matrix
     wstep: Steps of box width to compute (i.e. a list of widths to compute)
     lrlim: Limit for what a low relief is
-    elelim: Cut off level for when surfaces become two low
+    elelim: Cut off level for when surfaces become too low in elevation
 
     output:
     ---------
-    Zlr: Binary low relief matrix
+    Zbin: Binary low relief matrix
     '''
 
     Zbin = np.zeros(Z.shape)
     
     for w in wstep:
         print(w)
-        ZLoc = localRelief(Z,w)
+        ZLoc = localRelief2D(Z,w)
 
-        ZBin[ZLoc < lrlim] += 1
+        Zbin[ZLoc < lrlim] += 1
 
         
     Zbin[Z < elelim] = 0    
@@ -299,7 +298,8 @@ def localRelief(Z,c,w,Nx,Ny):
     Given a center point in pixel and a box width this function
     computes the local relief with that rectangle.
     Notice that w is the distance in each direction. The
-    box width is therefore 2*w.
+    box width is therefore 2*w. (i.e. w=1 is the area within 1 pixel
+    from the center c).
 
     input:
     -------------
@@ -356,10 +356,8 @@ def localRelief2D(Z,width=5,walti=False):
     Nx,Ny = Z.shape
     Zloc = np.zeros(Z.shape)
     d = width
-#    d = np.floor(width/2)
     for x in np.linspace(d,Nx-d,Nx-2*d):
         for y in np.linspace(d,Ny-d,Ny-2*d):
-#            Zloc[x,y] = np.amax(Z[x-d:x+d,y-d:y+d])-np.amin(Z[x-d:x+d,y-d:y+d])
             Zloc[x,y] = localRelief(Z,[x,y],d,Nx,Ny)
 
     
@@ -523,7 +521,7 @@ def analyseDEM(Z,dx,dy,forceshow=False,w=5,title='',trans=False,corner=[0.0,0.0]
     plt.colorbar(orientation='horizontal')
     
     plt.subplot(222)
-    Zloc = localRelief(Z,w)
+    Zloc = localRelief2D(Z,w)
     plt.imshow(Zloc,vmax=150,extent=[y0, y1, x1, x0],aspect='auto',cmap=seqcmap)
     plt.title("Local relief - Radius %i"%(np.sqrt(pow2(w*dx)+pow2(w*dy))))
     plt.ylabel('Km')
