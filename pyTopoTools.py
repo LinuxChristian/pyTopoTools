@@ -109,7 +109,7 @@ def detectLowRelief(Z,wstep=5,lrlim=500.0,elelim=1000.0):
     Zbin[Z < elelim] = 0    
     return Zbin
 
-def plotLowRelief(Z,ZLowRe,boxsize,ext=None,cmap=None,mlab=False):
+def plotLowRelief(Z,ZLowRe,boxsize,ext=None,cmap=None,mlab=False,fax=None):
     '''
     Plots the results of detectLowRelief
     
@@ -123,6 +123,7 @@ def plotLowRelief(Z,ZLowRe,boxsize,ext=None,cmap=None,mlab=False):
     ext: extent of model
     cmap: Colormap
     mlab: 3D plotting with mayavi
+    fig: Figure handle
     '''
 
     if ext is None:
@@ -132,24 +133,28 @@ def plotLowRelief(Z,ZLowRe,boxsize,ext=None,cmap=None,mlab=False):
         
     if cmap is None:
         cmap=plt.get_cmap('jet')
-
+        
     if mlab:
         print("Still no 3D function")
     else:
-        plt.figure()
-        plt.matshow(hillshade(Z,315,65),extent=ext,cmap=plt.get_cmap('bone'))
-        im_bed = plt.imshow(Z,extent=ext,cmap=cmap_center_adjust(plt.get_cmap('terrain'), 0.65),alpha=0.8)
+        if fax is None:
+            fig = plt.figure()
+            fax = fig.add_subplot(111)
+            
+        fax.matshow(hillshade(Z,315,65),extent=ext,cmap=plt.get_cmap('bone'))
+        im_bed = fax.imshow(Z,extent=ext,cmap=cmap_center_adjust(plt.get_cmap('terrain'), 0.65),alpha=0.8)
         z_masked = np.ma.masked_where(ZLowRe < 1 , ZLowRe)
         plt.hold(True)
 
         plt.title('Geophysical relief')
 
-        im_gr = plt.imshow(z_masked,extent=ext,cmap=cmap)
-        cax = plt.colorbar(im_gr,orientation='horizontal')
-
-        cax.set_ticks(np.arange(len(boxsize)+1))
-        cax.set_ticklabels(boxsize)
-#        plt.tight_layout()
+        im_gr = fax.imshow(z_masked,extent=ext,cmap=cmap)
+        if fax is None:
+            cax = plt.colorbar(im_gr,orientation='horizontal')
+            
+            cax.set_ticks(np.arange(len(boxsize)+1))
+            cax.set_ticklabels(boxsize)
+            plt.show()
             
 
 def zfilter(fmat, f, filttype):
