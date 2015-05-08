@@ -354,7 +354,7 @@ def localRelief2D(Z,width=5,walti=False):
     '''
     
     Nx,Ny = Z.shape
-    Zloc = np.zeros(Z.shape)
+    Zloc = np.ones(Z.shape)*1e4     # Start with a high local relief everywhere
     d = width
     for x in np.linspace(d,Nx-d,Nx-2*d):
         for y in np.linspace(d,Ny-d,Ny-2*d):
