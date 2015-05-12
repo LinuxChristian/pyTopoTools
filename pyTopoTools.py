@@ -24,6 +24,7 @@ import operator
 from scipy.io import loadmat
 from matplotlib.colors import LogNorm
 #from mpl_toolkits.mplot3d.axes3d import Axes3D
+#import parallelTopoTools as ptt
 import statsmodels.api as sm
 import seaborn as sns
 import copy
@@ -148,9 +149,9 @@ def plotLowRelief(Z,ZLowRe,boxsize,ext=None,cmap=None,mlab=False,fax=None):
 
         plt.title('Geophysical relief')
 
-        im_gr = fax.imshow(z_masked,extent=ext,cmap=cmap)
-        if fax is None:
-            cax = plt.colorbar(im_gr,orientation='horizontal')
+        im_gr = fax.imshow(z_masked,extent=ext,cmap=cmap,vmin=1.0,vmax=len(boxsize))
+        if 'fig' in locals():
+            cax = fig.colorbar(im_gr,orientation='horizontal')
             
             cax.set_ticks(np.arange(len(boxsize)+1))
             cax.set_ticklabels(boxsize)
@@ -298,6 +299,7 @@ def test_localRelief():
     assert 4 == localRelief(Z,[4,4],4,9,9)
     assert 0.0 == localRelief(Z,[4,4],0,9,9)
 
+#@profile
 def localRelief(Z,c,w,Nx,Ny):
     '''
     Given a center point in pixel and a box width this function
@@ -320,9 +322,11 @@ def localRelief(Z,c,w,Nx,Ny):
     xr = c[0]+w if c[0]+w < Nx else Nx
     yl = c[1]-w if c[1]-w > 0 else 0
     yr = c[1]+w if c[1]+w < Ny else Ny
-    
+
     sli = Z[yl:yr,xl:xr]
     if (len(sli) > 0):
+#    return ptt.mima(sli)
+#    return np.max(sli)-np.min(sli)
         return np.amax(sli)-np.amin(sli)
     else:
         return 0.0
@@ -344,7 +348,6 @@ def test_localRelief2D():
     b = localRelief2D(Z,4)
     assert 4 == b[4,4]
 
-
 def localRelief2D(Z,width=5,walti=False):
     '''
     Computes the local relief using a window function
@@ -358,9 +361,10 @@ def localRelief2D(Z,width=5,walti=False):
     walti: Compute mean relief in altitude bands
     '''
     
-    Nx,Ny = Z.shape
+    Ny,Nx = Z.shape
     Zloc = np.ones(Z.shape)*1e4     # Start with a high local relief everywhere
     d = width
+#    print(Ny,Nx)
     for x in np.linspace(d,Nx-d,Nx-2*d):
         for y in np.linspace(d,Ny-d,Ny-2*d):
             Zloc[y,x] = localRelief(Z,[x,y],d,Nx,Ny)
@@ -639,6 +643,27 @@ def plotVariable(varname,cmap=None,trans=False,title=''):
     ax = plt.imshow(varname,cmap=cmap)
     plt.title(title)
     cbar = plt.colorbar(ax)
+
+def outputGeoTiff(Z,outfile,trans,dim,prj=None):
+    """
+    Outputs a matrix Z as a geotiff file.
+
+    INPUT
+    ---------
+    Z: 2D Topography Matrix
+    outfile: Path to output file
+    trans: Transform matrix [x0, dx, 0.0, 0.0, y0, dy]
+    dim: [Nx,Ny]
+    prj: Projection infomation
+    """
+
+    output_raster = gdal.GetDriverByName('GTiff').Create(outfile, dim[0], dim[1], 1 ,gdal.GDT_Float32)
+    output_raster.SetGeoTransform(trans)  # Specify its coordinates
+    if prj is not None:
+        srs = osr.SpatialReference(wkt=prj)                 # Establish its coordinate encoding
+        output_raster.SetProjection( srs.ExportToWkt() )   # Exports the coordinate system to the file
+    output_raster.GetRasterBand(1).WriteArray(Z)   # Writes my array to the raster
+    output_raster = None
 
 def hillshade(array, azimuth, angle_altitude):
         
